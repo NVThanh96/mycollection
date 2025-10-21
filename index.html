@@ -46,6 +46,7 @@ const paginationContainer = document.getElementById('pagination');
 const searchForm = document.getElementById('searchForm');
 const searchInput = document.getElementById('searchInput');
 let renderSessionId = 0;
+let activeTag = '';
 
 const productsPerPage = 10;
 let productsData = [];
@@ -158,38 +159,59 @@ function goToPage(page) {
 }
 
 // ✅ Filter products
-function filterProductsByKey(key) {
-    filteredProducts = key ? productsData.filter(p => p.key === key) : [...productsData];
-    currentPage = 1;
-    renderProductsPage(currentPage);
-}
-
-// ✅ Search
-searchForm.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const query = searchInput.value.trim().toLowerCase();
+function filterProducts() {
+    const query = normalize(searchInput.value);
     filteredProducts = productsData.filter(p => {
-        const title = (p.title || '').toLowerCase();
-        const url = (p.url || '').toLowerCase();
-        const key = (p.key || '').toLowerCase();
-        return !query || title.includes(query) || url.includes(query) || key.includes(query);
+        const title = normalize(p.title || '');
+        const url = normalize(p.url || '');
+        const key = normalize(p.key || '');
+        const matchTag = !activeTag || key === activeTag;
+        const matchQuery = !query || title.includes(query) || url.includes(query) || key.includes(query);
+        return matchTag && matchQuery;
     });
     currentPage = 1;
     renderProductsPage(currentPage);
-});
+}
 
 // ✅ Load products từ JSON
 async function loadProducts() {
     try {
         const res = await fetch("json/products.json");
         const data = await res.json();
-        productsData = data.products || [];
+        productsData = (data.products || []).map(p => ({
+            ...p,
+            title: decodeHtml(p.title || '')
+        }));
         filteredProducts = [...productsData];
         await renderProductsPage(currentPage);
     } catch (err) {
         console.error("Lỗi khi tải danh sách sản phẩm:", err);
     }
 }
+
+// decode HTML entities
+function decodeHtml(html) {
+    const txt = document.createElement('textarea');
+    txt.innerHTML = html;
+    return txt.value;
+}
+
+// normalize cho search
+function normalize(str) {
+    return str
+        .replace(/[–—−]/g, '-')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .trim();
+}
+
+// search
+searchForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    filterProducts();
+});
+
 
 // ✅ Load tags
 async function loadTags() {
@@ -209,9 +231,10 @@ async function loadTags() {
 
         tagContainer.querySelectorAll('.tag').forEach(tag => {
             tag.addEventListener('click', () => {
-                filterProductsByKey(tag.dataset.key);
+                activeTag = tag.dataset.key;
                 tagContainer.querySelectorAll('.tag').forEach(t => t.classList.remove('active'));
                 tag.classList.add('active');
+                filterProducts();
             });
         });
 
