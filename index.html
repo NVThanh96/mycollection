@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="favicon" href="favicon.ico" type="image/x-icon">
+<title>T-Review</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="background"><img src="/img/background.jpg" alt=""></div>
+<div class="container">
+    <div class="box">
+        <img src="https://cf.shopee.sg/file/myCollection-default-background.png" alt="" class="bg-image">
+        <div class="search-box">
+            <i class="icon-search"></i>
+            <form id="searchForm">
+                <input type="search" id="searchInput" placeholder="Tìm kiếm đường dẫn" value="">
+            </form>
+        </div>
+        <div class="profile">
+            <div class="avatar"><img src="img/TReview.png" alt=""></div>
+            <div class="info">          
+                <h2>T-Review</h2>
+                <p>Một số vật dụng hay ho và hữu ích</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="tags" id="tags"></div>
+    <div class="more-tag" id="toggleTags">
+        <div class="arr-down"><span></span></div>
+        <div class="text">Xem thêm</div>    
+    </div>
+
+    <div class="products" id="products"></div>
+
+    <div class="pagination" id="pagination"></div>
+</div>
+</body>
+
+<script>
+const tagContainer = document.getElementById('tags');
+const productContainer = document.getElementById('products');
+const paginationContainer = document.getElementById('pagination');
+const searchForm = document.getElementById('searchForm');
+const searchInput = document.getElementById('searchInput');
+let renderSessionId = 0;
+
+const productsPerPage = 10;
+let productsData = [];
+let currentPage = 1;
+let filteredProducts = [];
+
+// ✅ Render 1 sản phẩm
+function renderProduct(data) {
+    const product = document.createElement("div");
+    product.className = "product";
+    if (data.key) product.dataset.key = data.key;
+
+    product.innerHTML = `
+        <a href="${data.url}" target="_blank" class="thumb">
+            <img src="${data.image || 'img/no-image.png'}" alt="${data.title}" loading="lazy">
+        </a>
+        <div class="info">
+            <div class="title">${data.title}</div>
+            <div class="link"><a href="${data.url}" target="_blank">🔗 Xem sản phẩm</a></div>
+        </div>
+    `;
+    productContainer.appendChild(product);
+}
+
+// ✅ Fetch meta Shopee
+async function fetchAndRender(url, key = '') {
+    try {
+        const res = await fetch(`/api/get-meta?url=${encodeURIComponent(url)}`);
+        const data = await res.json();
+
+        if (data.error) {
+            renderProduct({ title: "Không tìm thấy tiêu đề", url, image: "img/no-image.png", key });
+            return;
+        }
+        renderProduct({ ...data, key });
+    } catch (e) {
+        console.error(e);
+    }
+}
+
+// ✅ Render products theo pagination
+async function renderProductsPage(page) {
+    productContainer.innerHTML = '';
+    const start = (page - 1) * productsPerPage;
+    const end = start + productsPerPage;
+    const pageItems = filteredProducts.slice(start, end);
+
+    // Tạo ID render mới
+    const currentSession = ++renderSessionId;
+
+    // 🟡 Nếu không có sản phẩm
+    if (pageItems.length === 0) {
+        productContainer.innerHTML = `
+            <div class="no-products">
+                <p>🚫 Hiện tại chưa có sản phẩm nào cho danh mục này.</p>
+            </div>
+        `;
+        paginationContainer.innerHTML = '';
+        return;
+    }
+
+    // 🟢 Hiển thị "đang tải" (tuỳ chọn)
+    productContainer.innerHTML = `<div class="loading">⏳ Đang tải sản phẩm...</div>`;
+
+    // Dừng một nhịp nhỏ để hiển thị loading
+    await new Promise(r => setTimeout(r, 100));
+
+    // Làm trống container sau khi bắt đầu tải
+    productContainer.innerHTML = '';
+
+    // 🟢 Chỉ render nếu session này còn hợp lệ
+    const promises = pageItems.map(async (product) => {
+        // Nếu user đã đổi tag → bỏ qua render
+        if (currentSession !== renderSessionId) return;
+        await fetchAndRender(product.url, product.key);
+    });
+
+    await Promise.all(promises);
+
+    // Nếu trong lúc chờ user đã đổi tag → không render pagination
+    if (currentSession !== renderSessionId) return;
+
+    renderPagination();
+}
+
+
+// ✅ Render pagination
+function renderPagination() {
+    const totalPages = Math.ceil(filteredProducts.length / productsPerPage);
+    let html = '';
+
+    if (totalPages <= 1) {
+        paginationContainer.innerHTML = '';
+        return;
+    }
+
+    if (currentPage > 1) html += `<button onclick="goToPage(${currentPage - 1})">« Trước</button>`;
+    for (let i = 1; i <= totalPages; i++) {
+        html += `<button onclick="goToPage(${i})" ${i === currentPage ? 'style="font-weight:bold"' : ''}>${i}</button>`;
+    }
+    if (currentPage < totalPages) html += `<button onclick="goToPage(${currentPage + 1})">Sau »</button>`;
+
+    paginationContainer.innerHTML = html;
+}
+
+// ✅ Chuyển trang
+function goToPage(page) {
+    currentPage = page;
+    renderProductsPage(page);
+}
+
+// ✅ Filter products
+function filterProductsByKey(key) {
+    filteredProducts = key ? productsData.filter(p => p.key === key) : [...productsData];
+    currentPage = 1;
+    renderProductsPage(currentPage);
+}
+
+// ✅ Search
+searchForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const query = searchInput.value.trim().toLowerCase();
+    filteredProducts = productsData.filter(p => {
+        const title = (p.title || '').toLowerCase();
+        const url = (p.url || '').toLowerCase();
+        const key = (p.key || '').toLowerCase();
+        return !query || title.includes(query) || url.includes(query) || key.includes(query);
+    });
+    currentPage = 1;
+    renderProductsPage(currentPage);
+});
+
+// ✅ Load products từ JSON
+async function loadProducts() {
+    try {
+        const res = await fetch("json/products.json");
+        const data = await res.json();
+        productsData = data.products || [];
+        filteredProducts = [...productsData];
+        await renderProductsPage(currentPage);
+    } catch (err) {
+        console.error("Lỗi khi tải danh sách sản phẩm:", err);
+    }
+}
+
+// ✅ Load tags
+async function loadTags() {
+    try {
+        const res = await fetch('json/tags.json');
+        const data = await res.json();
+        const tagsArray = data.tags || [];
+        const maxVisible = 1;
+
+        let tagHtml = `<div class="tag active" data-key="">Tất cả</div>`;
+        tagsArray.forEach((tag, index) => {
+            const hiddenClass = index >= maxVisible ? 'hidden-tag' : '';
+            tagHtml += `<div class="tag ${hiddenClass}" data-key="${tag.key}">${tag.name}</div>`;
+        });
+
+        tagContainer.innerHTML = tagHtml;
+
+        tagContainer.querySelectorAll('.tag').forEach(tag => {
+            tag.addEventListener('click', () => {
+                filterProductsByKey(tag.dataset.key);
+                tagContainer.querySelectorAll('.tag').forEach(t => t.classList.remove('active'));
+                tag.classList.add('active');
+            });
+        });
+
+        const toggleBtn = document.getElementById('toggleTags');
+        toggleBtn?.addEventListener('click', () => {
+            tagContainer.querySelectorAll('.tag.hidden-tag').forEach(t => t.classList.toggle('show-hidden'));
+            const textDiv = toggleBtn.querySelector('.text');
+            if (textDiv.textContent === 'Xem thêm') {
+                textDiv.textContent = 'Thu gọn';
+                toggleBtn.querySelector('.arr-down').classList.add('open');
+            } else {
+                textDiv.textContent = 'Xem thêm';
+                toggleBtn.querySelector('.arr-down').classList.remove('open');
+            }
+        });
+    } catch (err) {
+        console.error('Lỗi khi tải tags:', err);
+    }
+}
+
+// 🚀 Khởi chạy
+window.addEventListener('DOMContentLoaded', async () => {
+    await loadTags();
+    await loadProducts();
+});
+</script>
+</html>

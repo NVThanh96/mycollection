@@ -1,0 +1,52 @@
+{
+  "tags": [
+    {
+      "key": "tai_nghe_khong_day",
+      "name": "Tai Nghe Không Dây"
+    },
+    {
+      "key": "khan_giay",
+      "name": "Khăn Giấy"
+    },
+    {
+      "key": "chuot_khong_day",
+      "name": "Chuột Không Dây"
+    },
+    {
+      "key": "khan_giay_uot",
+      "name": "Khăn Giấy Ướt"
+    },
+    {
+      "key": "keyboard",
+      "name": "Keyboard"
+    },
+    {
+      "key": "trang_tri",
+      "name": "Trang Trí"
+    },
+    {
+      "key": "may_in",
+      "name": "Máy In"
+    },
+    {
+      "key": "an_vat",
+      "name": "Ăn Vặt"
+    },
+    {
+      "key": "ke_man_hinh",
+      "name": "Kệ Màn Hình"
+    },
+    {
+      "key": "chao_chong_dinh",
+      "name": "Chảo Chống Dính"
+    },
+    {
+      "key": "gia_do",
+      "name": "Giá Đỡ"
+    },
+    {
+      "key": "ke_tay",
+      "name": "Kê Tay"
+    }
+  ]
+}
