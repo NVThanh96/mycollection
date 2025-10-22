@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="favicon" href="favicon.ico" type="image/x-icon">
 <title>T-Review</title>
+<link rel="stylesheet" href="css/scrollbar">
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -33,232 +34,16 @@
         <div class="text">Xem thêm</div>    
     </div>
 
+    <div class="no-products" id="noProducts">
+        <p>🚫 Hiện tại chưa có sản phẩm nào cho danh mục này.</p>
+    </div>
     <div class="products" id="products"></div>
 
     <div class="pagination" id="pagination"></div>
 </div>
 </body>
-
-<script>
-const tagContainer = document.getElementById('tags');
-const productContainer = document.getElementById('products');
-const paginationContainer = document.getElementById('pagination');
-const searchForm = document.getElementById('searchForm');
-const searchInput = document.getElementById('searchInput');
-let renderSessionId = 0;
-let activeTag = '';
-
-const productsPerPage = 10;
-let productsData = [];
-let currentPage = 1;
-let filteredProducts = [];
-
-// ✅ Render 1 sản phẩm
-function renderProduct(data) {
-    const product = document.createElement("div");
-    product.className = "product";
-    if (data.key) product.dataset.key = data.key;
-
-    product.innerHTML = `
-        <a href="${data.url}" target="_blank" class="thumb">
-            <img src="${data.image || 'img/no-image.png'}" alt="${data.title}" loading="lazy">
-        </a>
-        <div class="info">
-            <div class="title">${data.title}</div>
-            <div class="link"><a href="${data.url}" target="_blank">🔗 Xem sản phẩm</a></div>
-        </div>
-    `;
-    productContainer.appendChild(product);
-}
-
-// ✅ Fetch meta Shopee
-async function fetchAndRender(url, key = '') {
-    try {
-        const res = await fetch(`/api/get-meta?url=${encodeURIComponent(url)}`);
-        const data = await res.json();
-
-        if (data.error) {
-            renderProduct({ title: "Không tìm thấy tiêu đề", url, image: "img/no-image.png", key });
-            return;
-        }
-        renderProduct({ ...data, key });
-    } catch (e) {
-        console.error(e);
-    }
-}
-
-// ✅ Render products theo pagination
-async function renderProductsPage(page) {
-    productContainer.innerHTML = '';
-    const start = (page - 1) * productsPerPage;
-    const end = start + productsPerPage;
-    const pageItems = filteredProducts.slice(start, end);
-
-    // Tạo ID render mới
-    const currentSession = ++renderSessionId;
-
-    // 🟡 Nếu không có sản phẩm
-    if (pageItems.length === 0) {
-        productContainer.innerHTML = `
-            <div class="no-products">
-                <p>🚫 Hiện tại chưa có sản phẩm nào cho danh mục này.</p>
-            </div>
-        `;
-        paginationContainer.innerHTML = '';
-        return;
-    }
-
-    // 🟢 Hiển thị "đang tải" (tuỳ chọn)
-    productContainer.innerHTML = `<div class="loading">⏳ Đang tải sản phẩm...</div>`;
-
-    // Dừng một nhịp nhỏ để hiển thị loading
-    await new Promise(r => setTimeout(r, 100));
-
-    // Làm trống container sau khi bắt đầu tải
-    productContainer.innerHTML = '';
-
-    // 🟢 Chỉ render nếu session này còn hợp lệ
-    const promises = pageItems.map(async (product) => {
-        // Nếu user đã đổi tag → bỏ qua render
-        if (currentSession !== renderSessionId) return;
-        await fetchAndRender(product.url, product.key);
-    });
-
-    await Promise.all(promises);
-
-    // Nếu trong lúc chờ user đã đổi tag → không render pagination
-    if (currentSession !== renderSessionId) return;
-
-    renderPagination();
-}
-
-
-// ✅ Render pagination
-function renderPagination() {
-    const totalPages = Math.ceil(filteredProducts.length / productsPerPage);
-    let html = '';
-
-    if (totalPages <= 1) {
-        paginationContainer.innerHTML = '';
-        return;
-    }
-
-    if (currentPage > 1) html += `<button onclick="goToPage(${currentPage - 1})">« Trước</button>`;
-    for (let i = 1; i <= totalPages; i++) {
-        html += `<button onclick="goToPage(${i})" ${i === currentPage ? 'style="font-weight:bold"' : ''}>${i}</button>`;
-    }
-    if (currentPage < totalPages) html += `<button onclick="goToPage(${currentPage + 1})">Sau »</button>`;
-
-    paginationContainer.innerHTML = html;
-}
-
-// ✅ Chuyển trang
-function goToPage(page) {
-    currentPage = page;
-    renderProductsPage(page);
-}
-
-// ✅ Filter products
-function filterProducts() {
-    const query = normalize(searchInput.value);
-    filteredProducts = productsData.filter(p => {
-        const title = normalize(p.title || '');
-        const url = normalize(p.url || '');
-        const key = normalize(p.key || '');
-        const matchTag = !activeTag || key === activeTag;
-        const matchQuery = !query || title.includes(query) || url.includes(query) || key.includes(query);
-        return matchTag && matchQuery;
-    });
-    currentPage = 1;
-    renderProductsPage(currentPage);
-}
-
-// ✅ Load products từ JSON
-async function loadProducts() {
-    try {
-        const res = await fetch("json/products.json");
-        const data = await res.json();
-        productsData = (data.products || []).map(p => ({
-            ...p,
-            title: decodeHtml(p.title || '')
-        }));
-        filteredProducts = [...productsData];
-        await renderProductsPage(currentPage);
-    } catch (err) {
-        console.error("Lỗi khi tải danh sách sản phẩm:", err);
-    }
-}
-
-// decode HTML entities
-function decodeHtml(html) {
-    const txt = document.createElement('textarea');
-    txt.innerHTML = html;
-    return txt.value;
-}
-
-// normalize cho search
-function normalize(str) {
-    return str
-        .replace(/[–—−]/g, '-')
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .toLowerCase()
-        .trim();
-}
-
-// search
-searchForm.addEventListener('submit', (e) => {
-    e.preventDefault();
-    filterProducts();
-});
-
-
-// ✅ Load tags
-async function loadTags() {
-    try {
-        const res = await fetch('json/tags.json');
-        const data = await res.json();
-        const tagsArray = data.tags || [];
-        const maxVisible = 1;
-
-        let tagHtml = `<div class="tag active" data-key="">Tất cả</div>`;
-        tagsArray.forEach((tag, index) => {
-            const hiddenClass = index >= maxVisible ? 'hidden-tag' : '';
-            tagHtml += `<div class="tag ${hiddenClass}" data-key="${tag.key}">${tag.name}</div>`;
-        });
-
-        tagContainer.innerHTML = tagHtml;
-
-        tagContainer.querySelectorAll('.tag').forEach(tag => {
-            tag.addEventListener('click', () => {
-                activeTag = tag.dataset.key;
-                tagContainer.querySelectorAll('.tag').forEach(t => t.classList.remove('active'));
-                tag.classList.add('active');
-                filterProducts();
-            });
-        });
-
-        const toggleBtn = document.getElementById('toggleTags');
-        toggleBtn?.addEventListener('click', () => {
-            tagContainer.querySelectorAll('.tag.hidden-tag').forEach(t => t.classList.toggle('show-hidden'));
-            const textDiv = toggleBtn.querySelector('.text');
-            if (textDiv.textContent === 'Xem thêm') {
-                textDiv.textContent = 'Thu gọn';
-                toggleBtn.querySelector('.arr-down').classList.add('open');
-            } else {
-                textDiv.textContent = 'Xem thêm';
-                toggleBtn.querySelector('.arr-down').classList.remove('open');
-            }
-        });
-    } catch (err) {
-        console.error('Lỗi khi tải tags:', err);
-    }
-}
-
-// 🚀 Khởi chạy
-window.addEventListener('DOMContentLoaded', async () => {
-    await loadTags();
-    await loadProducts();
-});
-</script>
+<script defer src="https://vercel.com/analytics/script.js"></script>
+<script src="js/fetchMetaShopee.js"></script>
+<script src="js/pagination.js"></script>
+<script src="js/index.js"></script>
 </html>

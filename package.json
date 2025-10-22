@@ -2,7 +2,9 @@
   "name": "t-review",
   "version": "1.0.0",
   "dependencies": {
+    "@vercel/analytics": "^1.5.0",
     "node-fetch": "^3.3.2"
   },
-  "type": "module"
+  "type": "module",
+  "start": "react-scripts start"
 }
