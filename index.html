@@ -7,6 +7,7 @@
 <title>T-Review</title>
 <link rel="stylesheet" href="css/style.css">
 <link rel="stylesheet" href="css/login.css">
+<link rel="stylesheet" href="css/popupAdd.css">
 </head>
 <body>
 <div class="background"><img src="/img/background.jpg" alt=""></div>
@@ -32,7 +33,6 @@
                     🔄
                 </button>
                 <button class="btn-edit" id="btnEdit">
-                    ✏️
                 </button>
             </div>
         </div>
@@ -49,6 +49,37 @@
     </div>
     <div class="products" id="products"></div>
 
+    <!-- Popup thêm Tag -->
+    <div id="popupAddTag" class="popup hidden">
+        <div class="popup-content">
+            <h3>Add Tag</h3>
+            <label>Name</label>
+            <input type="text" id="newTagName" placeholder="Ví dụ: Áo Jean">
+            <div class="popup-buttons">
+            <button id="btnSaveTag">Save</button>
+            <button class="btn-cancel" onclick="closePopup('popupAddTag')">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Popup thêm Product -->
+    <div id="popupAddProduct" class="popup hidden">
+        <div class="popup-content">
+            <h3>Thêm Sản Phẩm Mới</h3>
+            <label>Tên sản phẩm:</label>
+            <input type="text" id="newProductName" placeholder="Ví dụ: Tai nghe Sony">
+            <label>Link sản phẩm:</label>
+            <input type="url" id="newProductUrl" placeholder="https://...">
+            <label>Tag sản phẩm:</label>
+            <select id="productTagSelect"></select>
+            <div class="popup-buttons">
+            <button id="btnSaveProduct">Lưu</button>
+            <button class="btn-cancel" onclick="closePopup('popupAddProduct')">Hủy</button>
+            </div>
+        </div>
+    </div>
+
+
     <div class="pagination" id="pagination"></div>
 </div>
 </body>
@@ -57,5 +88,4 @@
 <script src="js/pagination.js"></script>
 <script src="js/search.js"></script>
 <script src="js/index.js"></script>
-<script src="js/login.js"></script>
 </html>

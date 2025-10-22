@@ -6,7 +6,6 @@ const searchInput = document.getElementById('searchInput');
 const toggleBtn = document.getElementById('toggleTags');
 const btnEdit = document.getElementById('btnEdit');
 const correctHash = "ddbd81038a50e3d2b1773d438f458362cbd7bd777d0c83a112f99cc7d0497a3a";
-
 let renderSessionId = 0;
 let activeTag = '';
 
@@ -108,30 +107,36 @@ async function loadProducts() {
 
 // ✅ Load tags
 async function loadTags() {
-    try {
-        const res = await fetch('json/tags.json');
-        const data = await res.json();
-        const tagsArray = data.tags || [];
-        const maxVisible = 1;
+  try {
+    const res = await fetch("/api/load-tags");
+    if (!res.ok) throw new Error("API lỗi");
 
-        let tagHtml = `<div class="tag active" data-key="">Tất cả</div>`;
-        tagsArray.forEach((tag, index) => {
-            const hiddenClass = index >= maxVisible ? 'hidden-tag' : '';
-            tagHtml += `<div class="tag ${hiddenClass}" data-key="${tag.key}">${tag.name}</div>`;
-        });
+    const data = await res.json();
+    const tagsArray = data.tags || [];
+    const customTags = JSON.parse(localStorage.getItem("customTags") || "[]");
+    const allTags = [...tagsArray, ...customTags];
 
-        tagContainer.innerHTML = tagHtml;
+    const maxVisible = 1;
+    let tagHtml = `<div class="tag active" data-key="">Tất cả</div>`;
 
-        tagContainer.querySelectorAll('.tag').forEach(tag => {
-            tag.addEventListener('click', () => {
-                activeTag = tag.dataset.key;
-                tagContainer.querySelectorAll('.tag').forEach(t => t.classList.remove('active'));
-                tag.classList.add('active');
-                filterProducts();
-            });
-        });
+    allTags.forEach((tag, index) => {
+      const hiddenClass = index >= maxVisible ? "hidden-tag" : "";
+      tagHtml += `<div class="tag ${hiddenClass}" data-key="${tag.key}">${tag.name}</div>`;
+    });
 
-        toggleBtn?.addEventListener('click', () => {
+    tagContainer.innerHTML = tagHtml;
+
+    // gắn sự kiện click cho tags
+    tagContainer.querySelectorAll(".tag").forEach(tag => {
+      tag.addEventListener("click", () => {
+        activeTag = tag.dataset.key;
+        tagContainer.querySelectorAll(".tag").forEach(t => t.classList.remove("active"));
+        tag.classList.add("active");
+        filterProducts();
+      });
+    });
+
+    toggleBtn?.addEventListener('click', () => {
             tagContainer.querySelectorAll('.tag.hidden-tag').forEach(t => t.classList.toggle('show-hidden'));
             const textDiv = toggleBtn.querySelector('.text');
             if (textDiv.textContent === 'Xem thêm') {
@@ -142,10 +147,11 @@ async function loadTags() {
                 toggleBtn.querySelector('.arr-down').classList.remove('open');
             }
         });
-    } catch (err) {
-        console.error('Lỗi khi tải tags:', err);
-    }
+  } catch (err) {
+    console.error("Lỗi khi tải tags từ gist:", err);
+  }
 }
+
 
 // Hàm tạo popup mật khẩu
 function createPasswordPopup() {
@@ -206,8 +212,7 @@ function renderAddButtons() {
         addTag.className = 'tag add-tag';
         addTag.dataset.key = '';
         addTag.textContent = '+';
-        addTag.addEventListener('click', () => alert('Thêm tag mới!'));
-        // đưa lên đầu tagContainer
+        addTag.addEventListener('click', showAddTagPopup);
         tagContainer.prepend(addTag);
     }
 }
@@ -221,15 +226,11 @@ async function enableEditMode() {
     productsPerPage = 9;
     currentPage = 1;
 
-    // Load xong products và tags
-    await loadProducts();
     await loadTags();
+    await loadProducts();
 
     renderAddButtons();
-    btnEdit.textContent = '⏻ Logout';
-    btnEdit.onclick = logout;
 }
-
 
 // Logout
 function logout() {
@@ -241,7 +242,7 @@ function logout() {
     document.querySelectorAll('.product.add-product').forEach(e => e.remove());
     document.querySelectorAll('.tag.add-tag').forEach(e => e.remove());
 
-    btnEdit.textContent = '✏️';
+    btnEdit.innerHTML = '<img src="img/icon/access.png" alt="Edit" class="icon-edit">';
     btnEdit.onclick = showLoginPopup;
 }
 
@@ -263,19 +264,72 @@ function showLoginPopup() {
     };
 }
 
+// 🧩 Hiện popup thêm tag
+async function showAddTagPopup() {
+  const popup = document.getElementById("popupAddTag");
+  popup.classList.remove("hidden");
+
+  document.getElementById("newTagName").value = "";
+
+  const saveBtn = document.getElementById("btnSaveTag");
+  saveBtn.onclick = async () => {
+    const name = document.getElementById("newTagName").value.trim();
+    if (!name) {
+      alert("⚠️ Vui lòng nhập tên tag!");
+      return;
+    }
+
+    const key = name
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/\s+/g, "_");
+
+    const newTag = { key, name };
+
+    try {
+      const res = await fetch("/api/save-tags", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tag: newTag }),
+    });
+
+      if (!res.ok) throw new Error("API lỗi");
+
+      alert("✅ Thêm tag thành công!");
+      closePopup("popupAddTag");
+      await loadTags();
+    } catch (e) {
+      console.error(e);
+      alert("⚠️ Không thể lưu tag vào server.");
+    }
+  };
+}
+
+
+function closePopup(id) {
+  const popup = document.getElementById(id);
+  if (popup) popup.classList.add("hidden");
+}
+
+
 window.addEventListener('DOMContentLoaded', async () => {
+    const btnEdit = document.getElementById('btnEdit');
     const loginExpiry = localStorage.getItem('loginExpiry');
     const isLoggedIn = loginExpiry && Date.now() < Number(loginExpiry);
 
     if (isLoggedIn) {
-        productsPerPage = 9;
+        btnEdit.innerHTML = `<img src="img/icon/logout.png" alt="Logout" class="icon-logout">`;
+        btnEdit.onclick = logout;
+    } else {
+        btnEdit.innerHTML = `<img src="img/icon/access.png" alt="Edit" class="icon-edit">`;
+        btnEdit.onclick = showLoginPopup;
+    }
+
+    if (isLoggedIn) {
         await enableEditMode();
     } else {
-        productsPerPage = 10;  
         await loadTags();
         await loadProducts();
-        btnEdit.textContent = '✏️';
-        btnEdit.onclick = showLoginPopup;
-        localStorage.removeItem('loginExpiry');
     }
 });
