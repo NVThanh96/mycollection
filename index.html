@@ -6,6 +6,7 @@
 <link rel="favicon" href="favicon.ico" type="image/x-icon">
 <title>T-Review</title>
 <link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/login.css">
 </head>
 <body>
 <div class="background"><img src="/img/background.jpg" alt=""></div>
@@ -18,11 +19,21 @@
                 <input type="search" id="searchInput" placeholder="Tìm kiếm đường dẫn" value="">
             </form>
         </div>
-        <div class="profile">
-            <div class="avatar"><img src="img/TReview.png" alt=""></div>
-            <div class="info">          
-                <h2>T-Review</h2>
-                <p>Một số vật dụng hay ho và hữu ích</p>
+        <div class="profile-btn">
+            <div class="profile">
+                <div class="avatar"><img src="img/TReview.png" alt=""></div>
+                <div class="info">          
+                    <h2>T-Review</h2>
+                    <p>Một số vật dụng hay ho và hữu ích</p>
+                </div>
+            </div>
+            <div class="btn-group">
+                <button class="btn-refresh d-none" id="btnRefresh">
+                    🔄
+                </button>
+                <button class="btn-edit" id="btnEdit">
+                    ✏️
+                </button>
             </div>
         </div>
     </div>
@@ -46,4 +57,5 @@
 <script src="js/pagination.js"></script>
 <script src="js/search.js"></script>
 <script src="js/index.js"></script>
+<script src="js/login.js"></script>
 </html>

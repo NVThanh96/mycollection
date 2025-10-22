@@ -3,6 +3,10 @@
     font-family: Arial, sans-serif;
 }
 
+.d-none {
+    display: none;
+}
+
 .favicon{
     width: 16px;
     height: 16px;
@@ -96,13 +100,45 @@ html, body {
     font-size: 14px;
 }
 
+.profile-btn{
+    display: flex;
+    border-radius: 0 0 20px 20px;
+    background: linear-gradient(179.85deg, rgba(0, 0, 0, .05) 4.92%, rgba(0, 0, 0, .12) 48.95%, rgba(0, 0, 0, .4) 97.81%);
+}
+
 .profile {
     display: flex;
     align-items: center;
     color: white;
     padding: 20px 15px;
-    border-radius: 0 0 20px 20px;
-    background: linear-gradient(179.85deg, rgba(0, 0, 0, .05) 4.92%, rgba(0, 0, 0, .12) 48.95%, rgba(0, 0, 0, .4) 97.81%);
+    flex: 2;
+}
+
+.btn-group {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+}
+
+.btn-group button {
+    border: none;
+    background: transparent;
+    color: white;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 14px;
+    transition: background 0.2s, transform 0.2s;
+    flex: 1;
+}
+
+.btn-group button:hover {
+    transform: translateY(-3px);
+}
+
+.btn-group button:active {
+    transform: translateY(0);
 }
 
 .avatar {
