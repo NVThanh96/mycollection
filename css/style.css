@@ -7,17 +7,18 @@
     display: none;
 }
 
-.favicon{
+.favicon {
     width: 16px;
     height: 16px;
     border-radius: 50%;
 }
 
-html, body {
-  height: 100%;
-  margin: 0;
-  padding: 0;
-  overflow: hidden;
+html,
+body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
 }
 
 .background {
@@ -29,6 +30,7 @@ html, body {
     z-index: -1;
     overflow: hidden;
 }
+
 .background img {
     width: 100%;
     height: 100%;
@@ -51,13 +53,13 @@ html, body {
     margin: 20px auto;
 }
 
-.box{
+.box {
     position: relative;
     border-radius: 0 0 20px 20px;
     background: linear-gradient(135deg, #f44336, #ff7043);
 }
 
-.box div{
+.box div {
     position: relative;
     z-index: 1;
 }
@@ -100,7 +102,7 @@ html, body {
     font-size: 14px;
 }
 
-.profile-btn{
+.profile-btn {
     display: flex;
     border-radius: 0 0 20px 20px;
     background: linear-gradient(179.85deg, rgba(0, 0, 0, .05) 4.92%, rgba(0, 0, 0, .12) 48.95%, rgba(0, 0, 0, .4) 97.81%);
@@ -146,7 +148,7 @@ html, body {
     height: 100px;
     background: white;
     border-radius: 50%;
-    margin-right: 20px ;
+    margin-right: 20px;
 }
 
 .avatar img {
@@ -171,37 +173,60 @@ html, body {
     font-size: 13px;
 }
 
+/* Tags */
 .tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  padding: 15px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 15px;
 }
 
 .tag {
-  background: #fafafa;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  padding: 8px 12px;
-  text-align: center;
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.4s ease;
-  position: relative;
+    position: relative;
+    background: #fafafa;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 8px 12px;
+    text-align: center;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.4s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.tag .remove-tag {
+    position: absolute;
+    cursor: pointer;
+    color: black;
+    background: red;
+    color: white;
+    border-radius: 50%;
+    opacity: 0.6;
+    padding: 3px;
+    top: -8px;
+    right: -7px;
+    transition: opacity 0.2s;
+}
+
+.tag .remove-tag:hover {
+    opacity: 1;
+    background-color: rgb(138, 7, 7);
 }
 
 .tag.hidden-tag {
-  position: absolute;
-  opacity: 0;
-  transform: translateY(20px);
-  pointer-events: none;
+    position: absolute;
+    opacity: 0;
+    transform: translateY(20px);
+    pointer-events: none;
 }
 
 .tag.show-hidden {
-  position: relative;
-  opacity: 1;
-  transform: translateY(0);
-  pointer-events: auto;
+    position: relative;
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
 }
 
 .tag:not(.active):hover {
@@ -216,7 +241,6 @@ html, body {
 .tag.active:hover {
     background: #007bff7a;
 }
-
 
 .more-tag {
     cursor: pointer;
@@ -258,7 +282,7 @@ html, body {
     line-height: 1;
 }
 
-
+/* products */
 .products {
     padding: 10px;
     display: grid;
@@ -267,15 +291,17 @@ html, body {
 }
 
 .product {
+    position: relative;
     background: #fff;
     border: 1px solid #eee;
     border-radius: 10px;
     overflow: hidden;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);   
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    min-height: 270px;
 }
 
 .product .title {
-    height: 100px;
+    min-height: auto;
 }
 
 .product img {
@@ -290,7 +316,11 @@ html, body {
 
 .product .link {
     text-align: right;
+    position: absolute;
+    bottom: 10px;
+    right: 15px;
 }
+
 .product .link a {
     text-decoration: none;
 }
@@ -319,14 +349,15 @@ html, body {
 }
 
 .no-products {
-  display: none;
-  text-align: center;
-  padding: 30px 0;
-  font-size: 1.1rem;
-  color: #666;
+    display: none;
+    text-align: center;
+    padding: 30px 0;
+    font-size: 1.1rem;
+    color: #666;
 }
+
 .no-products.show {
-  display: block;
+    display: block;
 }
 
 .loading {
@@ -337,87 +368,93 @@ html, body {
 }
 
 .container::-webkit-scrollbar {
-  width: 6px; 
-  height: 12px;
+    width: 6px;
+    height: 12px;
 }
 
 .container::-webkit-scrollbar-track {
-  background: transparent;
-  position: relative;
+    background: transparent;
+    position: relative;
 }
 
 .container::-webkit-scrollbar-track-piece:start {
-  background: transparent;
+    background: transparent;
 }
+
 .container::-webkit-scrollbar-track-piece:end {
-  background: transparent;
+    background: transparent;
 }
+
 .container::-webkit-scrollbar-track-piece:vertical {
-  background: linear-gradient(
-    to bottom,
-    transparent 100%,
-    rgba(0,0,0,0.1) 20%,
-    rgba(0,0,0,0.1) 80%,
-    transparent 100%
-  );
-  border-radius: 3px;
+    background: linear-gradient(to bottom,
+            transparent 100%,
+            rgba(0, 0, 0, 0.1) 20%,
+            rgba(0, 0, 0, 0.1) 80%,
+            transparent 100%);
+    border-radius: 3px;
 }
 
 .container::-webkit-scrollbar-thumb {
-  background-color: #ff9900;
-  border-radius: 10px;
-  background-image: -webkit-linear-gradient(
-    45deg,
-    rgba(255,255,255,.2) 25%,
-    transparent 25%,
-    transparent 50%,
-    rgba(255,255,255,.2) 50%,
-    rgba(255,255,255,.2) 75%,
-    transparent 75%,
-    transparent
-  );
-  box-shadow: inset 0 20px 0 transparent, inset 0 -20px 0 transparent;
+    background-color: #ff9900;
+    border-radius: 10px;
+    background-image: -webkit-linear-gradient(45deg,
+            rgba(255, 255, 255, .2) 25%,
+            transparent 25%,
+            transparent 50%,
+            rgba(255, 255, 255, .2) 50%,
+            rgba(255, 255, 255, .2) 75%,
+            transparent 75%,
+            transparent);
+    box-shadow: inset 0 20px 0 transparent, inset 0 -20px 0 transparent;
 }
 
 .popup {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 999;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 999;
 }
+
 .popup.hidden {
-  display: none;
+    display: none;
 }
+
 .popup-content {
-  background: #fff;
-  padding: 20px 25px;
-  border-radius: 12px;
-  width: 320px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    background: #fff;
+    padding: 20px 25px;
+    border-radius: 12px;
+    width: 320px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
 }
+
 .popup-content h3 {
-  margin-top: 0;
-  margin-bottom: 10px;
+    margin-top: 0;
+    margin-bottom: 10px;
 }
-.popup-content input, .popup-content select {
-  width: 100%;
-  margin-bottom: 10px;
-  padding: 8px;
+
+.popup-content input,
+.popup-content select {
+    width: 100%;
+    margin-bottom: 10px;
+    padding: 8px;
 }
+
 .popup-buttons {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
 }
+
 .popup-buttons button {
-  padding: 6px 12px;
+    padding: 6px 12px;
 }
+
 .btn-cancel {
-  background: #ccc;
+    background: #ccc;
 }

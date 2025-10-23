@@ -65,6 +65,10 @@ async function renderProductsPage(page) {
 
     if (currentSession !== renderSessionId) return;
     renderPagination();
+
+    const loginExpiry = localStorage.getItem('loginExpiry');
+    const isLoggedIn = loginExpiry && Date.now() < Number(loginExpiry);
+    if (isLoggedIn) renderAddButtons();
 }
 
 // ✅ Filter products
@@ -89,20 +93,25 @@ function decodeHtml(html) {
     return txt.value;
 }
 
-// ✅ Load products từ JSON
+// ✅ Load products từ API
 async function loadProducts() {
-    try {
-        const res = await fetch("json/products.json");
-        const data = await res.json();
-        productsData = (data.products || []).map(p => ({
-            ...p,
-            title: decodeHtml(p.title || '')
-        }));
-        filteredProducts = [...productsData];
-        await renderProductsPage(currentPage);
-    } catch (err) {
-        console.error("Lỗi khi tải danh sách sản phẩm:", err);
-    }
+  try {
+    const res = await fetch("/api/load-products");
+    if (!res.ok) throw new Error("API lỗi");
+
+    const data = await res.json();
+    const productsArray = data.products || [];
+
+    productsData = productsArray.map(p => ({
+      ...p,
+      title: decodeHtml(p.title || '')
+    }));
+
+    filteredProducts = [...productsData];
+    await renderProductsPage(currentPage);
+  } catch (err) {
+    console.error("Lỗi khi tải danh sách sản phẩm:", err);
+  }
 }
 
 // ✅ Load tags
@@ -128,13 +137,36 @@ async function loadTags() {
 
     // gắn sự kiện click cho tags
     tagContainer.querySelectorAll(".tag").forEach(tag => {
-      tag.addEventListener("click", () => {
+    const key = tag.dataset.key;
+
+    // bỏ qua "Tất cả" và "+"
+    if (key !== "" && !tag.classList.contains("add-tag")) {
+        const loginExpiry = localStorage.getItem("loginExpiry");
+        const isLoggedIn = loginExpiry && Date.now() < Number(loginExpiry);
+
+        if (isLoggedIn) {
+        // Thêm nút xoá nhỏ vào tag
+        const removeIcon = document.createElement("span");
+        removeIcon.className = "remove-tag";
+        removeIcon.textContent = "X";
+        removeIcon.title = "Xoá tag";
+        removeIcon.onclick = (e) => {
+            e.stopPropagation(); // tránh trigger click chọn tag
+            deleteTag(key, tag.textContent.replace("🗑", "").trim());
+        };
+        tag.appendChild(removeIcon);
+        }
+    }
+
+    // Sự kiện chọn tag để lọc
+    tag.addEventListener("click", () => {
         activeTag = tag.dataset.key;
         tagContainer.querySelectorAll(".tag").forEach(t => t.classList.remove("active"));
         tag.classList.add("active");
         filterProducts();
-      });
     });
+    });
+
 
     toggleBtn?.addEventListener('click', () => {
             tagContainer.querySelectorAll('.tag.hidden-tag').forEach(t => t.classList.toggle('show-hidden'));
@@ -151,7 +183,6 @@ async function loadTags() {
     console.error("Lỗi khi tải tags từ gist:", err);
   }
 }
-
 
 // Hàm tạo popup mật khẩu
 function createPasswordPopup() {
@@ -306,12 +337,10 @@ async function showAddTagPopup() {
   };
 }
 
-
 function closePopup(id) {
   const popup = document.getElementById(id);
   if (popup) popup.classList.add("hidden");
 }
-
 
 window.addEventListener('DOMContentLoaded', async () => {
     const btnEdit = document.getElementById('btnEdit');
@@ -333,3 +362,29 @@ window.addEventListener('DOMContentLoaded', async () => {
         await loadProducts();
     }
 });
+
+
+async function deleteTag(key, name) {
+  if (!confirm(`❗Bạn có chắc muốn xoá tag "${name}" không?`)) return;
+
+  try {
+    const res = await fetch("/api/delete-tag", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key })
+    });
+
+    if (!res.ok) throw new Error("API lỗi");
+
+    const data = await res.json();
+    if (data.success) {
+      alert("✅ Đã xoá tag thành công!");
+      await loadTags();
+    } else {
+      alert("⚠️ Không thể xoá tag trên server!");
+    }
+  } catch (err) {
+    console.error("Lỗi khi xoá tag:", err);
+    alert("❌ Lỗi khi xoá tag!");
+  }
+}
