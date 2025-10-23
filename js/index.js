@@ -95,81 +95,100 @@ function decodeHtml(html) {
 
 // ✅ Load products từ API
 async function loadProducts() {
-  try {
-    const res = await fetch("/api/load-products");
-    if (!res.ok) throw new Error("API lỗi");
+    try {
+        const res = await fetch("/api/load-products");
+        if (!res.ok) throw new Error("API lỗi");
 
-    const data = await res.json();
-    const productsArray = data.products || [];
+        const data = await res.json();
+        const productsArray = data.products || [];
 
-    productsData = productsArray.map(p => ({
-      ...p,
-      title: decodeHtml(p.title || '')
-    }));
+        productsData = productsArray.map(p => ({
+            ...p,
+            title: decodeHtml(p.title || '')
+        }));
 
-    filteredProducts = [...productsData];
-    await renderProductsPage(currentPage);
-  } catch (err) {
-    console.error("Lỗi khi tải danh sách sản phẩm:", err);
-  }
+        filteredProducts = [...productsData];
+        await renderProductsPage(currentPage);
+    } catch (err) {
+        console.error("Lỗi khi tải danh sách sản phẩm:", err);
+    }
 }
 
-// ✅ Load tags
+function resetToggleTags() {
+    const toggle = document.getElementById("toggleTags");
+    if (!toggle) return;
+
+    // Luôn reset về trạng thái mặc định "Xem thêm"
+    const textDiv = toggle.querySelector(".text");
+    const arrow = toggle.querySelector(".arr-down");
+
+    textDiv.textContent = "Xem thêm";
+    arrow.classList.remove("open");
+
+    // Ẩn hết các tag ẩn
+    document.querySelectorAll(".tag.hidden-tag").forEach(t => {
+        t.classList.remove("show-hidden");
+    });
+}
+
 async function loadTags() {
-  try {
-    const res = await fetch("/api/load-tags");
-    if (!res.ok) throw new Error("API lỗi");
+    try {
+        const res = await fetch("/api/load-tags");
+        if (!res.ok) throw new Error("API lỗi");
 
-    const data = await res.json();
-    const tagsArray = data.tags || [];
-    const customTags = JSON.parse(localStorage.getItem("customTags") || "[]");
-    const allTags = [...tagsArray, ...customTags];
+        const data = await res.json();
+        const tagsArray = data.tags || [];
+        const customTags = JSON.parse(localStorage.getItem("customTags") || "[]");
+        const allTags = [...tagsArray, ...customTags];
 
-    const maxVisible = 1;
-    let tagHtml = `<div class="tag active" data-key="">Tất cả</div>`;
+        const maxVisible = 1;
+        let tagHtml = `<div class="tag active" data-key="">Tất cả</div>`;
 
-    allTags.forEach((tag, index) => {
-      const hiddenClass = index >= maxVisible ? "hidden-tag" : "";
-      tagHtml += `<div class="tag ${hiddenClass}" data-key="${tag.key}">${tag.name}</div>`;
-    });
+        allTags.forEach((tag, index) => {
+            const hiddenClass = index >= maxVisible ? "hidden-tag" : "";
+            tagHtml += `<div class="tag ${hiddenClass}" data-key="${tag.key}">${tag.name}</div>`;
+        });
 
-    tagContainer.innerHTML = tagHtml;
+        tagContainer.innerHTML = tagHtml;
 
-    // gắn sự kiện click cho tags
-    tagContainer.querySelectorAll(".tag").forEach(tag => {
-    const key = tag.dataset.key;
+        // gắn sự kiện click cho tags
+        tagContainer.querySelectorAll(".tag").forEach(tag => {
+            const key = tag.dataset.key;
 
-    // bỏ qua "Tất cả" và "+"
-    if (key !== "" && !tag.classList.contains("add-tag")) {
-        const loginExpiry = localStorage.getItem("loginExpiry");
-        const isLoggedIn = loginExpiry && Date.now() < Number(loginExpiry);
+            // bỏ qua "Tất cả" và "+"
+            if (key !== "" && !tag.classList.contains("add-tag")) {
+                const loginExpiry = localStorage.getItem("loginExpiry");
+                const isLoggedIn = loginExpiry && Date.now() < Number(loginExpiry);
 
-        if (isLoggedIn) {
-        // Thêm nút xoá nhỏ vào tag
-        const removeIcon = document.createElement("span");
-        removeIcon.className = "remove-tag";
-        removeIcon.textContent = "X";
-        removeIcon.title = "Xoá tag";
-        removeIcon.onclick = (e) => {
-            e.stopPropagation();
-            deleteTag(key, tag.textContent.replace("X", "").trim());
-        };
-        tag.appendChild(removeIcon);
-        }
+                if (isLoggedIn) {
+                    // Thêm nút xoá nhỏ vào tag
+                    const removeIcon = document.createElement("span");
+                    removeIcon.className = "remove-tag";
+                    removeIcon.textContent = "X";
+                    removeIcon.title = "Xoá tag";
+                    removeIcon.onclick = (e) => {
+                        e.stopPropagation();
+                        deleteTag(key, tag.textContent.replace("X", "").trim());
+                    };
+                    tag.appendChild(removeIcon);
+                }
+            }
+
+            // Sự kiện chọn tag để lọc
+            tag.addEventListener("click", () => {
+                activeTag = tag.dataset.key;
+                tagContainer.querySelectorAll(".tag").forEach(t => t.classList.remove("active"));
+                tag.classList.add("active");
+                filterProducts();
+            });
+        });
+
+        // ✅ Reset lại toggle mỗi khi load xong tags
+        resetToggleTags();
+
+    } catch (err) {
+        console.error("Lỗi khi tải tags từ gist:", err);
     }
-
-    // Sự kiện chọn tag để lọc
-    tag.addEventListener("click", () => {
-        activeTag = tag.dataset.key;
-        tagContainer.querySelectorAll(".tag").forEach(t => t.classList.remove("active"));
-        tag.classList.add("active");
-        filterProducts();
-    });
-    });
-
-  } catch (err) {
-    console.error("Lỗi khi tải tags từ gist:", err);
-  }
 }
 
 // Hàm tạo popup mật khẩu
@@ -260,11 +279,12 @@ async function enableEditMode() {
 
     renderAddButtons();
 
+    resetToggleTags();
+
     btnLoginLogout.innerHTML = `<img src="img/icon/logout.png" alt="Logout" class="icon-logout">`;
     btnLoginLogout.onclick = logout;
 }
 
-// Logout
 async function logout() {
     localStorage.removeItem('loginExpiry');
     productsPerPage = 10;
@@ -275,6 +295,8 @@ async function logout() {
 
     document.querySelectorAll('.product.add-product').forEach(e => e.remove());
     document.querySelectorAll('.tag.add-tag').forEach(e => e.remove());
+
+    resetToggleTags();
 
     btnLoginLogout.innerHTML = '<img src="img/icon/access.png" alt="Edit" class="icon-edit">';
     btnLoginLogout.onclick = showLoginPopup;
@@ -299,109 +321,109 @@ function showLoginPopup() {
 
 // 🧩 Hiện popup thêm tag
 async function showAddTagPopup() {
-  const popup = document.getElementById("popupAddTag");
-  popup.classList.remove("hidden");
+    const popup = document.getElementById("popupAddTag");
+    popup.classList.remove("hidden");
 
-  document.getElementById("newTagName").value = "";
+    document.getElementById("newTagName").value = "";
 
-  const saveBtn = document.getElementById("btnSaveTag");
-  saveBtn.onclick = async () => {
-    const name = document.getElementById("newTagName").value.trim();
-    if (!name) {
-      alert("⚠️ Vui lòng nhập tên tag!");
-      return;
-    }
+    const saveBtn = document.getElementById("btnSaveTag");
+    saveBtn.onclick = async () => {
+        const name = document.getElementById("newTagName").value.trim();
+        if (!name) {
+            alert("⚠️ Vui lòng nhập tên tag!");
+            return;
+        }
 
-    const key = name
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/\s+/g, "_");
+        const key = name
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .replace(/\s+/g, "_");
 
-    const newTag = { key, name };
+        const newTag = { key, name };
 
-    try {
-      const res = await fetch("/api/save-tags", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tag: newTag }),
-    });
+        try {
+            const res = await fetch("/api/save-tags", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ tag: newTag }),
+            });
 
-      if (!res.ok) throw new Error("API lỗi");
+            if (!res.ok) throw new Error("API lỗi");
 
-      alert("✅ Thêm tag thành công!");
-      closePopup("popupAddTag");
-      await loadTags();
-    } catch (e) {
-      console.error(e);
-      alert("⚠️ Không thể lưu tag vào server.");
-    }
-  };
+            alert("✅ Thêm tag thành công!");
+            closePopup("popupAddTag");
+            await loadTags();
+        } catch (e) {
+            console.error(e);
+            alert("⚠️ Không thể lưu tag vào server.");
+        }
+    };
 }
 
 function closePopup(id) {
-  const popup = document.getElementById(id);
-  if (popup) popup.classList.add("hidden");
+    const popup = document.getElementById(id);
+    if (popup) popup.classList.add("hidden");
 }
 
 window.addEventListener('DOMContentLoaded', async () => {
-  const loginExpiry = localStorage.getItem('loginExpiry');
-  const isLoggedIn = loginExpiry && Date.now() < Number(loginExpiry);
+    const loginExpiry = localStorage.getItem('loginExpiry');
+    const isLoggedIn = loginExpiry && Date.now() < Number(loginExpiry);
 
-  if (isLoggedIn) {
-      btnLoginLogout.innerHTML = `<img src="img/icon/logout.png" alt="Logout" class="icon-logout">`;
-      btnLoginLogout.onclick = logout;
-  } else {
-      btnLoginLogout.innerHTML = `<img src="img/icon/access.png" alt="Edit" class="icon-edit">`;
-      btnLoginLogout.onclick = showLoginPopup;
-  }
+    if (isLoggedIn) {
+        btnLoginLogout.innerHTML = `<img src="img/icon/logout.png" alt="Logout" class="icon-logout">`;
+        btnLoginLogout.onclick = logout;
+    } else {
+        btnLoginLogout.innerHTML = `<img src="img/icon/access.png" alt="Edit" class="icon-edit">`;
+        btnLoginLogout.onclick = showLoginPopup;
+    }
 
-  // ✅ chỉ gắn sự kiện toggle 1 lần
-  const toggleBtn = document.getElementById("toggleTags");
-  if (toggleBtn) {
-    toggleBtn.addEventListener("click", () => {
-      const hiddenTags = document.querySelectorAll(".tag.hidden-tag");
-      hiddenTags.forEach(t => t.classList.toggle("show-hidden"));
+    // ✅ chỉ gắn sự kiện toggle 1 lần
+    const toggleBtn = document.getElementById("toggleTags");
+    if (toggleBtn) {
+        toggleBtn.addEventListener("click", () => {
+            const hiddenTags = document.querySelectorAll(".tag.hidden-tag");
+            hiddenTags.forEach(t => t.classList.toggle("show-hidden"));
 
-      const textDiv = toggleBtn.querySelector(".text");
-      const arrow = toggleBtn.querySelector(".arr-down");
+            const textDiv = toggleBtn.querySelector(".text");
+            const arrow = toggleBtn.querySelector(".arr-down");
 
-      const isExpanded = textDiv.textContent === "Xem thêm";
-      textDiv.textContent = isExpanded ? "Thu gọn" : "Xem thêm";
-      arrow.classList.toggle("open", isExpanded);
-    });
-  }
+            const isExpanded = textDiv.textContent === "Xem thêm";
+            textDiv.textContent = isExpanded ? "Thu gọn" : "Xem thêm";
+            arrow.classList.toggle("open", isExpanded);
+        });
+    }
 
-  // Load dữ liệu ban đầu
-  if (isLoggedIn) {
-      await enableEditMode();
-  } else {
-      await loadTags();
-      await loadProducts();
-  }
+    // Load dữ liệu ban đầu
+    if (isLoggedIn) {
+        await enableEditMode();
+    } else {
+        await loadTags();
+        await loadProducts();
+    }
 });
 
 async function deleteTag(key, name) {
-  if (!confirm(`❗Bạn có chắc muốn xoá tag "${name}" không?`)) return;
+    if (!confirm(`❗Bạn có chắc muốn xoá tag "${name}" không?`)) return;
 
-  try {
-    const res = await fetch("/api/delete-tag", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ key })
-    });
+    try {
+        const res = await fetch("/api/delete-tag", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ key })
+        });
 
-    if (!res.ok) throw new Error("API lỗi");
+        if (!res.ok) throw new Error("API lỗi");
 
-    const data = await res.json();
-    if (data.success) {
-      alert("✅ Đã xoá tag thành công!");
-      await loadTags();
-    } else {
-      alert("⚠️ Không thể xoá tag trên server!");
+        const data = await res.json();
+        if (data.success) {
+            alert("✅ Đã xoá tag thành công!");
+            await loadTags();
+        } else {
+            alert("⚠️ Không thể xoá tag trên server!");
+        }
+    } catch (err) {
+        console.error("Lỗi khi xoá tag:", err);
+        alert("❌ Lỗi khi xoá tag!");
     }
-  } catch (err) {
-    console.error("Lỗi khi xoá tag:", err);
-    alert("❌ Lỗi khi xoá tag!");
-  }
 }
