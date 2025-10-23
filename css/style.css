@@ -169,16 +169,16 @@ body::-webkit-scrollbar-track-piece:vertical {
 }
 
 .btn-group button {
+    cursor: pointer;
     border: none;
     background: transparent;
-    color: white;
-    padding: 6px 12px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-weight: 600;
-    font-size: 14px;
+    padding: 10px 12px;
     transition: background 0.2s, transform 0.2s;
     flex: 1;
+}
+
+.btn-group button img{
+    height: 25px;
 }
 
 .btn-group button:hover {

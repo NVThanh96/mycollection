@@ -4,7 +4,7 @@ const paginationContainer = document.getElementById('pagination');
 const searchForm = document.getElementById('searchForm');
 const searchInput = document.getElementById('searchInput');
 const toggleBtn = document.getElementById('toggleTags');
-const btnEdit = document.getElementById('btnEdit');
+const btnLoginLogout = document.getElementById('btnLoginLogout');
 const correctHash = "ddbd81038a50e3d2b1773d438f458362cbd7bd777d0c83a112f99cc7d0497a3a";
 let renderSessionId = 0;
 let activeTag = '';
@@ -151,8 +151,8 @@ async function loadTags() {
         removeIcon.textContent = "X";
         removeIcon.title = "Xoá tag";
         removeIcon.onclick = (e) => {
-            e.stopPropagation(); // tránh trigger click chọn tag
-            deleteTag(key, tag.textContent.replace("🗑", "").trim());
+            e.stopPropagation();
+            deleteTag(key, tag.textContent.replace("X", "").trim());
         };
         tag.appendChild(removeIcon);
         }
@@ -167,18 +167,6 @@ async function loadTags() {
     });
     });
 
-
-    toggleBtn?.addEventListener('click', () => {
-            tagContainer.querySelectorAll('.tag.hidden-tag').forEach(t => t.classList.toggle('show-hidden'));
-            const textDiv = toggleBtn.querySelector('.text');
-            if (textDiv.textContent === 'Xem thêm') {
-                textDiv.textContent = 'Thu gọn';
-                toggleBtn.querySelector('.arr-down').classList.add('open');
-            } else {
-                textDiv.textContent = 'Xem thêm';
-                toggleBtn.querySelector('.arr-down').classList.remove('open');
-            }
-        });
   } catch (err) {
     console.error("Lỗi khi tải tags từ gist:", err);
   }
@@ -204,15 +192,25 @@ function createPasswordPopup() {
     `;
     document.body.appendChild(popup);
 
+    const passInput = document.getElementById('passwordInput');
+    const toggleBtn = document.getElementById('togglePassword');
+    const okBtn = document.getElementById('popupOk');
+
     document.getElementById('popupCancel').onclick = () => popup.remove();
     document.querySelector('.popup-overlay').onclick = () => popup.remove();
 
-    const toggleBtn = document.getElementById('togglePassword');
-    const passInput = document.getElementById('passwordInput');
     toggleBtn.addEventListener('click', () => {
         const isHidden = passInput.type === 'password';
         passInput.type = isHidden ? 'text' : 'password';
         toggleBtn.textContent = isHidden ? '🙈' : '👁️';
+    });
+
+    // ✅ Nhấn Enter để xác nhận
+    passInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            okBtn.click();
+        }
     });
 
     return popup;
@@ -261,22 +259,26 @@ async function enableEditMode() {
     await loadProducts();
 
     renderAddButtons();
+
+    btnLoginLogout.innerHTML = `<img src="img/icon/logout.png" alt="Logout" class="icon-logout">`;
+    btnLoginLogout.onclick = logout;
 }
 
 // Logout
-function logout() {
+async function logout() {
     localStorage.removeItem('loginExpiry');
     productsPerPage = 10;
     currentPage = 1;
-    renderProductsPage(currentPage);
+
+    await loadTags();
+    await loadProducts();
 
     document.querySelectorAll('.product.add-product').forEach(e => e.remove());
     document.querySelectorAll('.tag.add-tag').forEach(e => e.remove());
 
-    btnEdit.innerHTML = '<img src="img/icon/access.png" alt="Edit" class="icon-edit">';
-    btnEdit.onclick = showLoginPopup;
+    btnLoginLogout.innerHTML = '<img src="img/icon/access.png" alt="Edit" class="icon-edit">';
+    btnLoginLogout.onclick = showLoginPopup;
 }
-
 
 // Hiển thị popup login
 function showLoginPopup() {
@@ -343,26 +345,41 @@ function closePopup(id) {
 }
 
 window.addEventListener('DOMContentLoaded', async () => {
-    const btnEdit = document.getElementById('btnEdit');
-    const loginExpiry = localStorage.getItem('loginExpiry');
-    const isLoggedIn = loginExpiry && Date.now() < Number(loginExpiry);
+  const loginExpiry = localStorage.getItem('loginExpiry');
+  const isLoggedIn = loginExpiry && Date.now() < Number(loginExpiry);
 
-    if (isLoggedIn) {
-        btnEdit.innerHTML = `<img src="img/icon/logout.png" alt="Logout" class="icon-logout">`;
-        btnEdit.onclick = logout;
-    } else {
-        btnEdit.innerHTML = `<img src="img/icon/access.png" alt="Edit" class="icon-edit">`;
-        btnEdit.onclick = showLoginPopup;
-    }
+  if (isLoggedIn) {
+      btnLoginLogout.innerHTML = `<img src="img/icon/logout.png" alt="Logout" class="icon-logout">`;
+      btnLoginLogout.onclick = logout;
+  } else {
+      btnLoginLogout.innerHTML = `<img src="img/icon/access.png" alt="Edit" class="icon-edit">`;
+      btnLoginLogout.onclick = showLoginPopup;
+  }
 
-    if (isLoggedIn) {
-        await enableEditMode();
-    } else {
-        await loadTags();
-        await loadProducts();
-    }
+  // ✅ chỉ gắn sự kiện toggle 1 lần
+  const toggleBtn = document.getElementById("toggleTags");
+  if (toggleBtn) {
+    toggleBtn.addEventListener("click", () => {
+      const hiddenTags = document.querySelectorAll(".tag.hidden-tag");
+      hiddenTags.forEach(t => t.classList.toggle("show-hidden"));
+
+      const textDiv = toggleBtn.querySelector(".text");
+      const arrow = toggleBtn.querySelector(".arr-down");
+
+      const isExpanded = textDiv.textContent === "Xem thêm";
+      textDiv.textContent = isExpanded ? "Thu gọn" : "Xem thêm";
+      arrow.classList.toggle("open", isExpanded);
+    });
+  }
+
+  // Load dữ liệu ban đầu
+  if (isLoggedIn) {
+      await enableEditMode();
+  } else {
+      await loadTags();
+      await loadProducts();
+  }
 });
-
 
 async function deleteTag(key, name) {
   if (!confirm(`❗Bạn có chắc muốn xoá tag "${name}" không?`)) return;
