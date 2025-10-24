@@ -3,9 +3,14 @@ import fetch from "node-fetch";
 export default async function handler(req, res) {
   const token = process.env.GITHUB_TOKEN;
   const gistId = process.env.GIST_ID;
+  const file = req.query.file; // ✅ đọc từ query
 
   if (!token || !gistId) {
     return res.status(500).json({ error: "Token hoặc Gist ID chưa set" });
+  }
+
+  if (!file) {
+    return res.status(400).json({ error: "file query bắt buộc" });
   }
 
   try {
@@ -18,20 +23,22 @@ export default async function handler(req, res) {
     const gistData = await gistRes.json();
     let products = [];
 
-    // ✅ Đọc file products.json trong Gist (mảng JSON trực tiếp)
-    if (gistData.files["products.json"] && gistData.files["products.json"].content) {
-      const content = gistData.files["products.json"].content.trim();
+    // ✅ Đọc file theo query
+    const fileName = `${file}.json`;
+    if (gistData.files[fileName] && gistData.files[fileName].content) {
+      const content = gistData.files[fileName].content.trim();
       try {
         const parsed = JSON.parse(content);
         if (Array.isArray(parsed)) {
           products = parsed;
         } else if (parsed.products) {
-          // fallback nếu sau này có cấu trúc {"products": [...]}
           products = parsed.products;
         }
       } catch (jsonErr) {
         console.error("Lỗi parse JSON:", jsonErr);
       }
+    } else {
+      return res.status(404).json({ error: `File ${fileName} không tồn tại trong gist` });
     }
 
     res.status(200).json({ products });

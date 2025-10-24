@@ -106,7 +106,6 @@ body::-webkit-scrollbar-track-piece:vertical {
 }
 
 .box div {
-    position: relative;
     z-index: 1;
 }
 
@@ -149,6 +148,7 @@ body::-webkit-scrollbar-track-piece:vertical {
 }
 
 .profile-btn {
+    position: relative;
     display: flex;
     border-radius: 0 0 20px 20px;
     background: linear-gradient(179.85deg, rgba(0, 0, 0, .05) 4.92%, rgba(0, 0, 0, .12) 48.95%, rgba(0, 0, 0, .4) 97.81%);
@@ -156,9 +156,8 @@ body::-webkit-scrollbar-track-piece:vertical {
 
 .profile {
     display: flex;
-    align-items: center;
     color: white;
-    padding: 20px 15px;
+    padding: 20px 0px 20px 15px;
     flex: 2;
 }
 
@@ -204,9 +203,11 @@ body::-webkit-scrollbar-track-piece:vertical {
     border-radius: 50%;
 }
 
-.info {
+.box .info {
+    position: relative;
     display: inline-block;
     vertical-align: middle;
+    flex: 2;
 }
 
 .profile h2 {

@@ -9,6 +9,7 @@ const correctHash = "ddbd81038a50e3d2b1773d438f458362cbd7bd777d0c83a112f99cc7d04
 let renderSessionId = 0;
 let activeTag = '';
 
+let currentCategory = 'tech-gadgets'; // default
 let productsPerPage = 10;
 let productsData = [];
 let currentPage = 1;
@@ -94,24 +95,20 @@ function decodeHtml(html) {
 }
 
 // ✅ Load products từ API
-async function loadProducts() {
-    try {
-        const res = await fetch("/api/load-products");
-        if (!res.ok) throw new Error("API lỗi");
+async function loadProducts(currentCategory) {
+  try {
+    const res = await fetch(`/api/load-products?file=${currentCategory}`);
+    if (!res.ok) throw new Error("API lỗi");
 
-        const data = await res.json();
-        const productsArray = data.products || [];
+    const data = await res.json(); // data là object { products: [...] }
+    const productsArray = data.products || []; // ✅ lấy đúng mảng
 
-        productsData = productsArray.map(p => ({
-            ...p,
-            title: decodeHtml(p.title || '')
-        }));
-
-        filteredProducts = [...productsData];
-        await renderProductsPage(currentPage);
-    } catch (err) {
-        console.error("Lỗi khi tải danh sách sản phẩm:", err);
-    }
+    productsData = productsArray.map(p => ({ ...p, title: decodeHtml(p.title || '') }));
+    filteredProducts = [...productsData];
+    renderProductsPage(currentPage);
+  } catch (err) {
+    console.error("Lỗi khi tải products:", err);
+  }
 }
 
 function resetToggleTags() {
@@ -138,8 +135,15 @@ async function loadTags() {
 
         const data = await res.json();
         const tagsArray = data.tags || [];
-        const customTags = JSON.parse(localStorage.getItem("customTags") || "[]");
-        const allTags = [...tagsArray, ...customTags];
+
+        // ✅ chỉ lấy tag thuộc chủ đề hiện tại
+        const filteredTags = tagsArray.filter(tag => tag.file === currentCategory);
+
+        // ✅ cộng thêm custom tags trong localStorage (nếu cùng file)
+        const customTags = JSON.parse(localStorage.getItem("customTags") || "[]")
+            .filter(tag => tag.file === currentCategory);
+
+        const allTags = [...filteredTags, ...customTags];
 
         const maxVisible = 1;
         let tagHtml = `<div class="tag active" data-key="">Tất cả</div>`;
@@ -151,17 +155,15 @@ async function loadTags() {
 
         tagContainer.innerHTML = tagHtml;
 
-        // gắn sự kiện click cho tags
+        // --- Gắn sự kiện click cho tag ---
         tagContainer.querySelectorAll(".tag").forEach(tag => {
             const key = tag.dataset.key;
 
-            // bỏ qua "Tất cả" và "+"
             if (key !== "" && !tag.classList.contains("add-tag")) {
                 const loginExpiry = localStorage.getItem("loginExpiry");
                 const isLoggedIn = loginExpiry && Date.now() < Number(loginExpiry);
 
                 if (isLoggedIn) {
-                    // Thêm nút xoá nhỏ vào tag
                     const removeIcon = document.createElement("span");
                     removeIcon.className = "remove-tag";
                     removeIcon.textContent = "X";
@@ -174,7 +176,6 @@ async function loadTags() {
                 }
             }
 
-            // Sự kiện chọn tag để lọc
             tag.addEventListener("click", () => {
                 activeTag = tag.dataset.key;
                 tagContainer.querySelectorAll(".tag").forEach(t => t.classList.remove("active"));
@@ -183,11 +184,10 @@ async function loadTags() {
             });
         });
 
-        // ✅ Reset lại toggle mỗi khi load xong tags
         resetToggleTags();
 
     } catch (err) {
-        console.error("Lỗi khi tải tags từ gist:", err);
+        console.error("Lỗi khi tải tags:", err);
     }
 }
 
@@ -275,10 +275,9 @@ async function enableEditMode() {
     currentPage = 1;
 
     await loadTags();
-    await loadProducts();
+    await loadProducts(currentCategory); // ✅ truyền currentCategory
 
     renderAddButtons();
-
     resetToggleTags();
 
     btnLoginLogout.innerHTML = `<img src="img/icon/logout.png" alt="Logout" class="icon-logout">`;
@@ -291,7 +290,24 @@ async function logout() {
     currentPage = 1;
 
     await loadTags();
-    await loadProducts();
+    await loadProducts(currentCategory); // ✅ truyền currentCategory
+
+    document.querySelectorAll('.product.add-product').forEach(e => e.remove());
+    document.querySelectorAll('.tag.add-tag').forEach(e => e.remove());
+
+    resetToggleTags();
+
+    btnLoginLogout.innerHTML = '<img src="img/icon/access.png" alt="Edit" class="icon-edit">';
+    btnLoginLogout.onclick = showLoginPopup;
+}
+
+async function logout() {
+    localStorage.removeItem('loginExpiry');
+    productsPerPage = 10;
+    currentPage = 1;
+
+    await loadTags();
+    await loadProducts(currentCategory); // ✅ truyền currentCategory
 
     document.querySelectorAll('.product.add-product').forEach(e => e.remove());
     document.querySelectorAll('.tag.add-tag').forEach(e => e.remove());
@@ -366,6 +382,57 @@ function closePopup(id) {
     if (popup) popup.classList.add("hidden");
 }
 
+document.addEventListener("DOMContentLoaded", () => {
+    const dropdown = document.querySelector(".dropdown");
+    const dropbtn = dropdown.querySelector(".dropbtn");
+    const dropdownLinks = dropdown.querySelectorAll(".dropdown-content a");
+
+    // Hàm load dữ liệu theo chủ đề
+    function loadCatalog(category) {
+        currentCategory = category;
+        activeTag = '';
+
+        loadTags();
+        loadProducts(currentCategory);
+    }
+
+    // Gắn sự kiện click cho từng item
+    dropdownLinks.forEach(link => {
+        link.addEventListener("click", (e) => {
+            e.preventDefault();
+
+            dropdownLinks.forEach(l => l.classList.remove("active"));
+            link.classList.add("active");
+            dropdown.classList.remove("show");
+
+            const selected = link.dataset.tab;
+            dropbtn.textContent = link.textContent;
+            loadCatalog(selected);
+        });
+    });
+
+    // 🔹 Set mặc định khi vừa mở trang: “Đồ công nghệ”
+    const defaultLink = document.querySelector('[data-tab="tech-gadgets"]');
+    if (defaultLink) {
+        defaultLink.classList.add("active");
+        dropbtn.textContent = defaultLink.textContent;
+        loadCatalog(defaultLink.dataset.tab);
+    }
+
+    // Toggle mở dropdown
+    const dropBtnElement = dropdown.querySelector(".dropbtn");
+    dropBtnElement.addEventListener("click", (e) => {
+        e.stopPropagation();
+        dropdown.classList.toggle("show");
+    });
+
+    // Đóng dropdown khi click ra ngoài
+    document.addEventListener("click", () => {
+        dropdown.classList.remove("show");
+    });
+});
+
+
 window.addEventListener('DOMContentLoaded', async () => {
     const loginExpiry = localStorage.getItem('loginExpiry');
     const isLoggedIn = loginExpiry && Date.now() < Number(loginExpiry);
@@ -373,35 +440,16 @@ window.addEventListener('DOMContentLoaded', async () => {
     if (isLoggedIn) {
         btnLoginLogout.innerHTML = `<img src="img/icon/logout.png" alt="Logout" class="icon-logout">`;
         btnLoginLogout.onclick = logout;
+        await enableEditMode(); // gọi loadTags + loadProducts 1 lần
     } else {
         btnLoginLogout.innerHTML = `<img src="img/icon/access.png" alt="Edit" class="icon-edit">`;
         btnLoginLogout.onclick = showLoginPopup;
-    }
 
-    // ✅ chỉ gắn sự kiện toggle 1 lần
-    const toggleBtn = document.getElementById("toggleTags");
-    if (toggleBtn) {
-        toggleBtn.addEventListener("click", () => {
-            const hiddenTags = document.querySelectorAll(".tag.hidden-tag");
-            hiddenTags.forEach(t => t.classList.toggle("show-hidden"));
-
-            const textDiv = toggleBtn.querySelector(".text");
-            const arrow = toggleBtn.querySelector(".arr-down");
-
-            const isExpanded = textDiv.textContent === "Xem thêm";
-            textDiv.textContent = isExpanded ? "Thu gọn" : "Xem thêm";
-            arrow.classList.toggle("open", isExpanded);
-        });
-    }
-
-    // Load dữ liệu ban đầu
-    if (isLoggedIn) {
-        await enableEditMode();
-    } else {
-        await loadTags();
-        await loadProducts();
+        // không cần gọi loadTags() + loadProducts() ở đây nữa
+        // vì defaultLink đã gọi loadCatalog() rồi
     }
 });
+
 
 async function deleteTag(key, name) {
     if (!confirm(`❗Bạn có chắc muốn xoá tag "${name}" không?`)) return;
@@ -427,3 +475,12 @@ async function deleteTag(key, name) {
         alert("❌ Lỗi khi xoá tag!");
     }
 }
+
+toggleBtn.addEventListener('click', () => {
+    document.querySelectorAll('.tag.hidden-tag').forEach(tag => {
+        tag.classList.toggle('show-hidden');
+    });
+    toggleBtn.querySelector('.arr-down').classList.toggle('open');
+    const textDiv = toggleBtn.querySelector('.text');
+    textDiv.textContent = textDiv.textContent === "Xem thêm" ? "Thu gọn" : "Xem thêm";
+});
